@@ -1,4 +1,9 @@
-{{> main.layout }}
+
+{{> head.layout }}
+
+{{> navegation.layout }}
+
+<link rel="stylesheet" href="/css/product.css">
 
 <main>
     {{#if hasProducts }}
@@ -27,6 +32,4 @@
     {{/if}}
 </main>
 
-
-</body>
-</html>
+{{> end.layout }}
