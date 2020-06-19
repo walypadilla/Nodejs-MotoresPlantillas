@@ -1,4 +1,10 @@
-{{> main.layout }}
+
+{{> head.layout }}
+
+{{> navegation.layout }}
+
+<link rel="stylesheet" href="/css/forms.css">
+<link rel="stylesheet" href="/css/product.css">
 
 <main>
     <form class="product-form" action="/admin/add-product" method="POST">
@@ -13,3 +19,5 @@
 
 </body>
 </html>
+
+{{> end.layout }}
