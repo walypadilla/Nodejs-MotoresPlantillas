@@ -1,4 +1,5 @@
 module.exports = {
 	NotFoundController: require('./error.controller'),
-	ProductsController: require('./products.controller'),
+	ShopController: require('./shop.controller'),
+	AdminController: require('./admin.controller'),
 };

@@ -2,14 +2,13 @@ const path = require('path');
 
 const express = require('express');
 const bodyParser = require('body-parser');
-const hbs = require('hbs');
 
 const { NotFoundController } = require('./controllers/index.controller');
 
 const app = express();
-//Expres HBS
-hbs.registerPartials(__dirname + '/views/layouts');
-app.set('view engine', 'hbs');
+
+app.set('view engine', 'ejs');
+app.set('views', 'views');
 
 const adminRoutes = require('./routes/admin.routes');
 const shopRoutes = require('./routes/shop.routes');
