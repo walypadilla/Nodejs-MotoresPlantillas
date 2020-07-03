@@ -8,4 +8,5 @@ if (process.env.NODE_ENV !== 'production') {
 
 module.exports = {
 	PASSWORDSQL: process.env.PASSWORDSQL,
+	MONGO_URI: process.env.MONGO_URI,
 };

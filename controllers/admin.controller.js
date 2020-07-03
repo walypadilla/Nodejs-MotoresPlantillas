@@ -10,13 +10,17 @@ exports.getAddProduct = (req, res, next) => {
 
 exports.postAddProduct = (req, res, next) => {
 	const { title, imageUrl, price, description } = req.body;
-	req.user
-		.createProduct({
-			title: title,
-			imageUrl: imageUrl,
-			price: price,
-			description: description,
-		})
+
+	const product = new ProductModel(
+		title,
+		price,
+		description,
+		imageUrl,
+		null,
+		req.user._id
+	);
+	product
+		.save()
 		.then((result) => {
 			// console.log(result);
 			console.log('Created Product');
@@ -31,11 +35,8 @@ exports.getEditProduct = (req, res, next) => {
 		return res.redirect('/');
 	}
 	const prodId = req.params.productId;
-	req.user
-		.getProducts({ where: { id: prodId } })
-		// ProductModel.findByPk(prodId)
-		.then((products) => {
-			const product = products[0];
+	ProductModel.findById(prodId)
+		.then((product) => {
 			if (!product) {
 				return res.redirect('/');
 			}
@@ -56,15 +57,17 @@ exports.postEditProduct = (req, res, next) => {
 	const updatedPrice = req.body.price;
 	const updatedImageUrl = req.body.imageUrl;
 	const updatedDesc = req.body.description;
-	ProductModel.findByPk(prodId)
-		.then((product) => {
-			product.title = updatedTitle;
-			product.price = updatedPrice;
-			product.imageUrl = updatedImageUrl;
-			product.description = updatedDesc;
 
-			return product.save();
-		})
+	const product = new ProductModel(
+		updatedTitle,
+		updatedPrice,
+		updatedDesc,
+		updatedImageUrl,
+		prodId
+	);
+
+	product
+		.save()
 		.then((result) => {
 			console.log('UPDATE PRODUCT');
 			res.redirect('/admin/products');
@@ -73,9 +76,7 @@ exports.postEditProduct = (req, res, next) => {
 };
 
 exports.getProducts = (req, res, next) => {
-	req.user
-		.getProducts()
-		// ProductModel.findAll()
+	ProductModel.fetchAll()
 		.then((products) => {
 			res.render('admin/products', {
 				prods: products,
@@ -88,11 +89,8 @@ exports.getProducts = (req, res, next) => {
 
 exports.postDeleteProduct = (req, res, next) => {
 	const prodId = req.body.productId;
-	ProductModel.findByPk(prodId)
-		.then((product) => {
-			return product.destroy();
-		})
-		.then((result) => {
+	ProductModel.deleteById(prodId)
+		.then(() => {
 			console.log('DESTROYED PRODUCT');
 			res.redirect('/admin/products');
 		})
