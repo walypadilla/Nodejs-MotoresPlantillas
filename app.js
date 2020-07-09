@@ -2,10 +2,11 @@ const path = require('path');
 
 const express = require('express');
 const bodyParser = require('body-parser');
+const mongoose = require('mongoose');
 
 const { NotFoundController } = require('./controllers/index.controller');
-const mongoConnect = require('./helpers/database.helper').mongoConnect;
 const { UserModel } = require('./models/index.model');
+const { MONGO_URI } = require('./config/config');
 
 const app = express();
 
@@ -19,9 +20,9 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use((req, res, next) => {
-	UserModel.findById('5efcf07697b3e516f30be4e1')
+	UserModel.findById('5f04ed8a71c45b296c07c08b')
 		.then((user) => {
-			req.user = new UserModel(user.username, user.email, user.cart, user._id);
+			req.user = user;
 			next();
 		})
 		.catch((err) => console.log(err));
@@ -32,6 +33,26 @@ app.use(shopRoutes);
 
 app.use(NotFoundController.get404);
 
-mongoConnect((client) => {
-	app.listen(3000, console.log('Server Connect'));
-});
+mongoose
+	.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+	.then((result) => {
+		UserModel.findOne().then((user) => {
+			if (!user) {
+				const user = new UserModel({
+					name: 'Waly',
+					email: 'waly@gmail',
+					cart: {
+						items: [],
+						pay: '',
+					},
+				});
+				user.save();
+			}
+		});
+
+		app.listen(3000);
+		console.log('Connection');
+	})
+	.catch((err) => {
+		console.log(err);
+	});

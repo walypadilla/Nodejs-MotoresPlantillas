@@ -1,7 +1,7 @@
-const { ProductModel } = require('../models/index.model');
+const { ProductModel, OrderModel } = require('../models/index.model');
 
 exports.getProducts = (req, res, next) => {
-	ProductModel.fetchAll()
+	ProductModel.find()
 		.then((products) => {
 			res.render('shop/product-list', {
 				prods: products,
@@ -26,7 +26,7 @@ exports.getProduct = (req, res, next) => {
 };
 
 exports.getIndex = (req, res, next) => {
-	ProductModel.fetchAll()
+	ProductModel.find()
 		.then((products) => {
 			res.render('shop/index', {
 				prods: products,
@@ -39,13 +39,16 @@ exports.getIndex = (req, res, next) => {
 
 exports.getCart = (req, res, next) => {
 	req.user
-		.getCart()
-		.then((products) => {
-			console.log(products[0].totalPay);
+		.populate('cart.items.productId')
+		.execPopulate()
+		.then((user) => {
+			const products = user.cart.items;
+			const pay = user.cart.pay;
 			res.render('shop/cart', {
 				path: '/cart',
 				pageTitle: 'Your Cart',
 				products: products,
+				totalPay: pay,
 			});
 		})
 
@@ -78,30 +81,47 @@ exports.postCartDeleteProduct = (req, res, next) => {
 
 exports.postOrder = (req, res, next) => {
 	req.user
-		.addOrder()
+		.populate('cart.items.productId')
+		.execPopulate()
+		.then((user) => {
+			const products = user.cart.items.map((i) => {
+				return {
+					quantity: i.quantity,
+					product: { ...i.productId._doc },
+					totalPay: i.totalPay,
+				};
+			});
+			const order = new OrderModel({
+				user: {
+					name: req.user.name,
+					userId: req.user,
+				},
+				products: products,
+				totalOrder: req.user.cart.pay,
+			});
+			return order.save();
+		})
 		.then((result) => {
+			return req.user.clearCart();
+		})
+		.then(() => {
 			res.redirect('/orders');
 		})
 		.catch((err) => console.log(err));
 };
-
 exports.getOrders = (req, res, next) => {
-	req.user
-		.getOrders()
-		.then((orders) => {
-			console.log('esta es la orden', orders[0].items);
+	OrderModel.find({ 'user.userId': req.user._id })
+		.then((order) => {
+			let total = 0;
+			order.forEach((order) => {
+				total = total + Number(order.totalOrder);
+			});
 			res.render('shop/orders', {
 				path: '/orders',
 				pageTitle: 'Your Orders',
-				orders: orders,
+				orders: order,
+				totalAmount: total,
 			});
 		})
 		.catch((err) => console.log(err));
-};
-
-exports.getCheckout = (req, res, next) => {
-	res.render('shop/checkout', {
-		path: '/checkout',
-		pageTitle: 'Checkout',
-	});
 };

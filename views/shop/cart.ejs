@@ -5,29 +5,37 @@
     <body>
         <%- include('../includes/navigation.ejs') %>
         <main>
+            <div class="cart__item-list">
             <% if (products.length > 0) { %>                
-                <ul class="cart__item-list">
+                <ul>
                     <% products.forEach(p => { %>
                         <li class="cart__item">
-                            <h1><%= p.title %></h1>
-                            <h2>Price: $ <%= p.price %></h2>
+                            <h1><%= p.productId.title %></h1>
+                            <h2>Price: $ <%= p.productId.price %></h2>
                             <h2>Quantity: <%= p.quantity %></h2>
-                            <h2>Total: $ <%= p.totalPrice %></h2>
+                            <h2>Total: $ <%= p.totalPay %></h2>
                             <form action="/cart-delete-item" method="POST">
-                                <input type="hidden" value="<%= p._id %>" name="productId">
+                                <input type="hidden" value="<%= p.productId._id %>" name="productId">
                                 <button class="btn danger" type="submit">Delete</button>
                             </form>
                         </li>
                         
                     <% }) %>
                 </ul>
+                <div class="cart_pay">
+                    <div class="cart__item_pay">
+                        <h1>Total Pay:  </h1>
+                        <h1>  $ <%= totalPay %></h1>
+                    </div>
+                </div >
+                
                 <hr>
                 <div class="centered">
                     <form action="/create-order" method="POST">
                         <button type="submit" class="btn">Order Now!</button>
                     </form>
                 </div>
-                
+            </div>  
             <% } else { %>
                 <h1>No Products in Cart!</h1>
             <% } %>
