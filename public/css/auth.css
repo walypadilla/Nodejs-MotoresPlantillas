@@ -4,3 +4,19 @@
 	margin: auto;
 	display: block;
 }
+.login {
+	display: inline;
+}
+div p {
+	font-size: 14px;
+	margin-left: 10px;
+	display: inline;
+}
+div p a {
+	display: inline;
+	text-decoration: none;
+}
+div p a:hover {
+	display: inline;
+	text-decoration: underline;
+}
