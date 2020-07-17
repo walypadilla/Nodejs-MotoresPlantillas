@@ -1,6 +1,7 @@
 const cryto = require('crypto');
 const bcrypt = require('bcryptjs');
 const sgMail = require('@sendgrid/mail');
+const { validationResult } = require('express-validator');
 
 const { UserModel } = require('../models/index.model');
 const { SEND_GRID_KEY } = require('../config/config');
@@ -19,6 +20,11 @@ exports.getLogin = (req, res, next) => {
 		path: '/login',
 		pageTitle: 'Login',
 		errorMessage: message,
+		oldInput: {
+			email: '',
+			password: '',
+		},
+		validationErrors: [],
 	});
 };
 
@@ -33,16 +39,46 @@ exports.getSignup = (req, res, next) => {
 		path: '/signup',
 		pageTitle: 'Signup',
 		errorMessage: message,
+		oldInput: {
+			name: '',
+			email: '',
+			password: '',
+			confirmPassword: '',
+		},
+		validationErrors: [],
 	});
 };
 
 exports.postLogin = (req, res, next) => {
 	const { email, password } = req.body;
+	const errors = validationResult(req);
+	if (!errors.isEmpty()) {
+		return res.status(422).render('auth/login', {
+			path: '/login',
+			pageTitle: 'Login',
+			errorMessage: errors.array()[0].msg,
+			oldInput: {
+				email: email,
+				password: password,
+			},
+			validationErrors: errors.array(),
+		});
+	}
+	// if no validation errors in the controller
 	UserModel.findOne({ email: email })
 		.then((user) => {
+			// if user does not exist
 			if (!user) {
-				req.flash('error', 'Invalid email or password');
-				res.redirect('/login');
+				return res.status(422).render('auth/login', {
+					path: '/login',
+					pageTitle: 'Login',
+					errorMessage: 'Invalid email or password.',
+					oldInput: {
+						email: email,
+						password: password,
+					},
+					validationErrors: [],
+				});
 			}
 			bcrypt
 				.compare(password, user.password)
@@ -55,8 +91,17 @@ exports.postLogin = (req, res, next) => {
 							res.redirect('/');
 						});
 					} else {
-						req.flash('error', 'Invalid email or password');
-						res.redirect('/login');
+						// if password is invalid
+						return res.status(422).render('auth/login', {
+							path: '/login',
+							pageTitle: 'Login',
+							errorMessage: 'Invalid email or password.',
+							oldInput: {
+								email: email,
+								password: password,
+							},
+							validationErrors: [],
+						});
 					}
 				})
 				.catch((err) => {
@@ -69,30 +114,34 @@ exports.postLogin = (req, res, next) => {
 
 exports.postSignup = (req, res, next) => {
 	const { name, email, password, confirmPassword } = req.body;
-	UserModel.findOne({ email: email })
-		.then((userDoc) => {
-			if (userDoc) {
-				req.flash('error', 'Email is already registered ');
-				return res.redirect('/signup');
-			}
-			return bcrypt.hash(password, 12).then((hashedPassword) => {
-				if (password === '' || confirmPassword == '') {
-					req.flash('error', 'password is required');
-					return res.redirect('/signup');
-				}
-				if (confirmPassword === password) {
-					const user = new UserModel({
-						name: name,
-						email: email,
-						password: hashedPassword,
-						cart: { items: [], pay: 0 },
-					});
-					return user.save();
-				} else {
-					req.flash('error', 'passwords are not the same');
-					return res.redirect('/signup');
-				}
+
+	const errors = validationResult(req);
+	if (!errors.isEmpty()) {
+		console.log(errors.array());
+		return res.status(422).render('auth/signup', {
+			path: '/signup',
+			pageTitle: 'Signup',
+			errorMessage: errors.array()[0].msg,
+			oldInput: {
+				name: name,
+				email: email,
+				password: password,
+				confirmPassword: confirmPassword,
+			},
+			validationErrors: errors.array(),
+		});
+	}
+	// if no validation errors in the controller
+	bcrypt
+		.hash(password, 12)
+		.then((hashedPassword) => {
+			const user = new UserModel({
+				name: name,
+				email: email,
+				password: hashedPassword,
+				cart: { items: [], pay: 0 },
 			});
+			return user.save();
 		})
 		.then((result) => {
 			res.redirect('/login');
@@ -124,21 +173,45 @@ exports.getReset = (req, res, next) => {
 		path: '/login',
 		pageTitle: 'Reset Password',
 		errorMessage: message,
+		errorMessage: message,
+		oldInput: {
+			password: '',
+		},
+		validationErrors: [],
 	});
 };
 
 exports.postReset = (req, res, next) => {
 	cryto.randomBytes(32, (err, buffer) => {
 		if (err) {
-			return res.redirect('/reset');
+			console.log(err);
+			return res.status(422).render('auth/reset', {
+				path: '/reset',
+				pageTitle: 'Reset Password',
+				errorMessage: 'Invalid email, please enter a different one',
+				oldInput: {
+					email: req.body.email,
+				},
+				validationErrors: [],
+			});
 		}
+		// if no validation errors in the controller
 		const token = buffer.toString('hex');
 		UserModel.findOne({ email: req.body.email })
 			.then((user) => {
+				// if user does not exist
 				if (!user) {
-					req.flash('error', 'No account with that email found.');
-					return res.redirect('/reset');
+					return res.status(422).render('auth/reset', {
+						path: '/reset',
+						pageTitle: 'Reset Password',
+						errorMessage: 'Unregistered mail, please enter a different one',
+						oldInput: {
+							email: req.body.email,
+						},
+						validationErrors: [],
+					});
 				}
+
 				user.resetToken = token;
 				user.resetTokenExpiration = Date.now() + 3600000;
 				return user.save();
@@ -191,6 +264,21 @@ exports.postNewPassword = (req, res, next) => {
 	const userId = req.body.userId;
 	const passwordToken = req.body.passwordToken;
 	let resetUser;
+	const errors = validationResult(req);
+	if (!errors.isEmpty()) {
+		return res.status(422).render('auth/new-password', {
+			path: '/new-password',
+			pageTitle: 'New Password',
+			errorMessage: message,
+			userId: user._id.toString(),
+			passwordToken: token,
+			errorMessage: errors.array()[0].msg,
+			oldInput: {
+				password: newPassword,
+			},
+			validationErrors: errors.array(),
+		});
+	}
 
 	UserModel.findOne({
 		resetToken: passwordToken,

@@ -1,22 +1,47 @@
 const { ProductModel } = require('../models/index.model');
+const { validationResult } = require('express-validator');
 
 exports.getAddProduct = (req, res, next) => {
 	res.render('admin/edit-product', {
 		pageTitle: 'Add Product',
 		path: '/admin/add-product',
 		editing: false,
+		errors: [],
+		oldValues: {
+			title: '',
+			imageUrl: '',
+			price: '',
+			description: '',
+		},
 	});
 };
 
 exports.postAddProduct = (req, res, next) => {
-	let body = req.body;
+	let { title, price, description, imageUrl } = req.body;
 	const product = new ProductModel({
-		title: body.title,
-		price: body.price,
-		description: body.description,
-		imageUrl: body.imageUrl,
+		title: title,
+		price: price,
+		description: description,
+		imageUrl: imageUrl,
 		userId: req.user,
 	});
+	// collect the validation errors from the router
+	const errors = validationResult(req);
+	if (!errors.isEmpty()) {
+		return res.status(402).render('admin/edit-product', {
+			pageTitle: 'Add Products',
+			path: '/admin/add-product',
+			editing: false,
+			errors: errors.array(),
+			oldValues: {
+				title: title,
+				imageUrl: imageUrl,
+				price: price,
+				description: description,
+			},
+		});
+	}
+	// if no validation errors in the controller
 	product
 		.save()
 		.then((result) => {
@@ -40,12 +65,18 @@ exports.getEditProduct = (req, res, next) => {
 			if (!product) {
 				return res.redirect('/');
 			}
-
 			res.render('admin/edit-product', {
 				pageTitle: 'Edit Product',
 				path: '/admin/edit-product',
 				editing: editMode,
 				product: product,
+				errors: [],
+				oldValues: {
+					title: '',
+					imageUrl: '',
+					price: '',
+					description: '',
+				},
 			});
 		})
 		.catch((err) => console.log(err));
@@ -58,6 +89,29 @@ exports.postEditProduct = (req, res, next) => {
 	const updatedImageUrl = req.body.imageUrl;
 	const updatedDesc = req.body.description;
 
+	// collect the validation erros from the controller
+	const errors = validationResult(req);
+	if (!errors.isEmpty()) {
+		console.log('validation errors in post edit:', errors.array());
+		return res.status(402).render('admin/edit-product', {
+			pageTitle: 'Edit Product',
+			path: '/admin/edit-product',
+			editing: true,
+			// must pass the product._id because i need it in the editing mode
+			product: {
+				_id: prodId,
+			},
+			errors: errors.array(),
+			oldValues: {
+				title: updatedTitle,
+				imageUrl: updatedImageUrl,
+				price: updatedPrice,
+				description: updatedDesc,
+				_id: prodId,
+			},
+		});
+	}
+	// if no validation errors in the controller
 	ProductModel.findById(prodId)
 		.then((product) => {
 			if (product.userId.toString() != req.user._id.toString()) {
