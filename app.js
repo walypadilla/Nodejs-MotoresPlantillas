@@ -12,6 +12,7 @@ const { NotFoundController } = require('./controllers/index.controller');
 const {
 	sessionMidleware,
 	csrfTokenMiddleware,
+	errorMiddleware,
 } = require('./middlewares/index.middleware');
 const { MONGO_URI, SECRET_SESSION } = require('./config/config');
 
@@ -55,7 +56,10 @@ app.use('/admin', adminRoutes);
 app.use(shopRoutes);
 app.use(authRoutes);
 
+app.use('/500', NotFoundController.get500);
 app.use(NotFoundController.get404);
+
+app.use(errorMiddleware);
 
 mongoose
 	.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })

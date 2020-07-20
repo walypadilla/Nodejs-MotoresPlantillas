@@ -4,4 +4,5 @@ module.exports = {
 	sessionMidleware,
 	isAuthMiddleware,
 	csrfTokenMiddleware: require('./csrfToken.middleware'),
+	errorMiddleware: require('./error.middleware'),
 };
