@@ -8,11 +8,9 @@ const MongoDBStore = require('connect-mongodb-session')(session);
 const csrf = require('csurf');
 const flash = require('connect-flash');
 
-const { NotFoundController } = require('./controllers/index.controller');
 const {
 	sessionMidleware,
 	csrfTokenMiddleware,
-	errorMiddleware,
 } = require('./middlewares/index.middleware');
 const { MONGO_URI, SECRET_SESSION } = require('./config/config');
 
@@ -26,12 +24,14 @@ const csrfProteccion = csrf();
 app.set('view engine', 'ejs');
 app.set('views', 'views');
 
-const adminRoutes = require('./routes/admin.routes');
-const shopRoutes = require('./routes/shop.routes');
-const authRoutes = require('./routes/auth.routes');
-
 app.use(bodyParser.urlencoded({ extended: false }));
+
+// multer config import
+app.use(require('./middlewares/imageLoaded.middleware'));
+
+// path static config
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/images', express.static(path.join(__dirname, 'images')));
 
 // create session
 app.use(
@@ -42,24 +42,17 @@ app.use(
 		store: store,
 	})
 );
-// // csrf Token for security
+// csrf Token for security
 app.use(csrfProteccion);
-// session Midleware
-app.use(sessionMidleware);
-// csrfToken Middleware
-app.use(csrfTokenMiddleware);
 // using flash
 app.use(flash());
+// csrfToken Middleware
+app.use(csrfTokenMiddleware);
+// session Midleware
+app.use(sessionMidleware);
 
-// routes
-app.use('/admin', adminRoutes);
-app.use(shopRoutes);
-app.use(authRoutes);
-
-app.use('/500', NotFoundController.get500);
-app.use(NotFoundController.get404);
-
-app.use(errorMiddleware);
+// module routes import
+app.use(require('./routes/index.routes'));
 
 mongoose
 	.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
