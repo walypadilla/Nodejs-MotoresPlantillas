@@ -27,3 +27,8 @@
 	border: 1px solid #00695c;
 	color: #00695c;
 }
+
+.item_order {
+	display: inline;
+	margin-left: 2rem;
+}

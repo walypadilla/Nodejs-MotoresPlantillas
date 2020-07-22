@@ -1,62 +1,65 @@
 <%- include('../includes/head.ejs') %>
-<link rel="stylesheet" href="/css/forms.css">
-<link rel="stylesheet" href="/css/product.css">
+    <link rel="stylesheet" href="/css/forms.css">
+    <link rel="stylesheet" href="/css/product.css">
 </head>
- 
+
 <body>
-    <%- include('../includes/navigation.ejs') %>
+   <%- include('../includes/navigation.ejs') %>
+
     <main>
-        <form class="product-form" action="/admin/<% if (editing) { %>edit-product<% } else { %>add-product<% } %>"
-            method="POST" novalidate>
- 
+        <% if (errorMessage) { %>
+            <div class="user-message user-message--error"><%= errorMessage %></div>
+        <% } %>
+        <form class="product-form" action="/admin/<% if (editing) { %>edit-product<% } else { %>add-product<% } %>" method="POST" enctype="multipart/form-data">
             <div class="form-control">
-                <%if(errors.find(el => el.param === 'title')) { %>
-                <div class="user-message user-message--error">
-                    <%let n = errors.find(el => el.param === 'title')%><%=n.msg%> </div>
-                <% } %>
                 <label for="title">Title</label>
-                <input type="text" name="title" id="title"
-                    class="<%= errors.find(el => el.param === 'title') ? 'invalid' : '' %>"
-                    value="<% if (editing) { %><%= product.title %><% } %><%=oldValues.title%>">
+                <input 
+                    class="<%= validationErrors.find(e => e.param === 'title') ? 'invalid' : '' %>"
+                    type="text" 
+                    name="title" 
+                    id="title" 
+                    value="<% if (editing || hasError) { %><%= product.title %><% } %>">
             </div>
- 
-            <div class="form-control">
-                <%if(errors.find(el => el.param === 'imageUrl')) { %>
-                <div class="user-message user-message--error"> <%let n = errors.find(el => el.param === 'imageUrl')%>
-                    <%=n.msg%> </div>
-                <% } %>
- 
+            <!-- <div class="form-control">
                 <label for="imageUrl">Image URL</label>
-                <input type="text" 
-                    name="imageUrl"
-                    id="imageUrl"
-                    class="<%= errors.find(el => el.param === 'imageUrl') ? 'invalid' : '' %>"
-                    value="<% if (editing) { %><%= product.imageUrl %><% } %><%=oldValues.imageUrl%>">
+                <input 
+                    class="<%= validationErrors.find(e => e.param === 'imageUrl') ? 'invalid' : '' %>"
+                    type="text" 
+                    name="imageUrl" 
+                    id="imageUrl" 
+                    value="<% if (editing || hasError) { %><%= product.imageUrl %><% } %>">
+            </div> -->
+            <div class="form-control">
+                <label for="image">Image</label>
+                <input 
+                    type="file" 
+                    name="image" 
+                    id="image" >
             </div>
             <div class="form-control">
-                <%if(errors.find(el => el.param === 'price')) { %>
-                <div class="user-message user-message--error"> <%let n = errors.find(el => el.param === 'price')%>
-                    <%=n.msg%></div>
-                <% } %>
                 <label for="price">Price</label>
-                <input type="number" name="price" id="price" step="0.01"
-                    class="<%= errors.find(el => el.param === 'price') ? 'invalid' : '' %>"
-                    value="<% if(editing) { %><%=product.price %><% } %><%=oldValues.price%>">
+                <input 
+                    class="<%= validationErrors.find(e => e.param === 'price') ? 'invalid' : '' %>"
+                    type="number" 
+                    name="price" 
+                    id="price" 
+                    step="0.01" 
+                    value="<% if (editing || hasError) { %><%= product.price %><% } %>">
             </div>
- 
             <div class="form-control">
                 <label for="description">Description</label>
-                <textarea name="description" id="description"
-                    rows="5"><% if (editing) { %><%=product.description%><% } %> <%=oldValues.description%></textarea>
+                <textarea 
+                    class="<%= validationErrors.find(e => e.param === 'description') ? 'invalid' : '' %>"
+                    name="description" 
+                    id="description" 
+                    rows="5"><% if (editing || hasError) { %><%= product.description %><% } %></textarea>
             </div>
- 
             <% if (editing) { %>
-                <input type="hidden" value="<%=product._id %>" name="productId">
+                <input type="hidden" value="<%= product._id %>" name="productId">
             <% } %>
- 
+
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-            <button class="btn" type="submit"><% if (editing) { %>Update Product<% } else { %>Add
-                Product<% } %></button>
+            <button class="btn" type="submit"><% if (editing) { %>Update Product<% } else { %>Add Product<% } %></button>
         </form>
     </main>
-    <%- include('../includes/end.ejs') %>
+<%- include('../includes/end.ejs') %>

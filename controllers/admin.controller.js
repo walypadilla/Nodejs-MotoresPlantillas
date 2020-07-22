@@ -1,23 +1,47 @@
 const { ProductModel } = require('../models/index.model');
 const { validationResult } = require('express-validator');
+const { fileMiddleware } = require('../middlewares/index.middleware');
+const productModel = require('../models/product.model');
 
+// ============================================
+//  Get add Product
+// ============================================
 exports.getAddProduct = (req, res, next) => {
 	res.render('admin/edit-product', {
 		pageTitle: 'Add Product',
 		path: '/admin/add-product',
 		editing: false,
-		errors: [],
-		oldValues: {
-			title: '',
-			imageUrl: '',
-			price: '',
-			description: '',
-		},
+		hasError: false,
+		errorMessage: null,
+		validationErrors: [],
 	});
 };
 
+// ============================================
+//  Post new Product
+// ============================================
 exports.postAddProduct = (req, res, next) => {
-	let { title, price, description, imageUrl } = req.body;
+	let { title, price, description } = req.body;
+	const image = req.file;
+	// If the image doest not exist
+	if (!image) {
+		return res.status(402).render('admin/edit-product', {
+			pageTitle: 'Add Products',
+			path: '/admin/add-product',
+			editing: false,
+			hasError: true,
+			product: {
+				title: title,
+				price: price,
+				description: description,
+			},
+			errorMessage: 'Attached file is not an image.',
+			validationErrors: [],
+		});
+	}
+	// storing image path
+	const imageUrl = image.path;
+
 	const product = new ProductModel({
 		title: title,
 		price: price,
@@ -33,12 +57,15 @@ exports.postAddProduct = (req, res, next) => {
 			path: '/admin/add-product',
 			editing: false,
 			errors: errors.array(),
-			oldValues: {
+			hasError: true,
+			product: {
 				title: title,
 				imageUrl: imageUrl,
 				price: price,
 				description: description,
 			},
+			errorMessage: errors.array()[0].msg,
+			validationErrors: errors.array(),
 		});
 	}
 	// if no validation errors in the controller
@@ -56,6 +83,9 @@ exports.postAddProduct = (req, res, next) => {
 		});
 };
 
+// ============================================
+//  Get edit Product
+// ============================================
 exports.getEditProduct = (req, res, next) => {
 	const editMode = req.query.edit;
 	if (!editMode) {
@@ -72,13 +102,9 @@ exports.getEditProduct = (req, res, next) => {
 				path: '/admin/edit-product',
 				editing: editMode,
 				product: product,
-				errors: [],
-				oldValues: {
-					title: '',
-					imageUrl: '',
-					price: '',
-					description: '',
-				},
+				hasError: false,
+				errorMessage: null,
+				validationErrors: [],
 			});
 		})
 		.catch((err) => {
@@ -88,33 +114,32 @@ exports.getEditProduct = (req, res, next) => {
 		});
 };
 
+// ============================================
+//  Post edit Product
+// ============================================
 exports.postEditProduct = (req, res, next) => {
 	const prodId = req.body.productId;
 	const updatedTitle = req.body.title;
 	const updatedPrice = req.body.price;
-	const updatedImageUrl = req.body.imageUrl;
+	const image = req.file;
 	const updatedDesc = req.body.description;
 
 	// collect the validation erros from the controller
 	const errors = validationResult(req);
 	if (!errors.isEmpty()) {
-		console.log('validation errors in post edit:', errors.array());
 		return res.status(402).render('admin/edit-product', {
 			pageTitle: 'Edit Product',
 			path: '/admin/edit-product',
 			editing: true,
-			// must pass the product._id because i need it in the editing mode
+			hasError: true,
 			product: {
-				_id: prodId,
-			},
-			errors: errors.array(),
-			oldValues: {
 				title: updatedTitle,
-				imageUrl: updatedImageUrl,
 				price: updatedPrice,
 				description: updatedDesc,
 				_id: prodId,
 			},
+			errorMessage: errors.array()[0].msg,
+			validationErrors: errors.array(),
 		});
 	}
 	// if no validation errors in the controller
@@ -125,7 +150,11 @@ exports.postEditProduct = (req, res, next) => {
 			}
 			product.title = updatedTitle;
 			product.price = updatedPrice;
-			product.imageUrl = updatedImageUrl;
+			if (image) {
+				// deleted image the product when is updated by another
+				fileMiddleware.deleteFile(product.imageUrl);
+				product.imageUrl = image.path;
+			}
 			product.description = updatedDesc;
 			return product.save().then((result) => {
 				console.log('UPDATE PRODUCT');
@@ -139,6 +168,9 @@ exports.postEditProduct = (req, res, next) => {
 		});
 };
 
+// ============================================
+//  Get all product for user
+// ============================================
 exports.getProducts = (req, res, next) => {
 	ProductModel.find({ userId: req.user._id })
 		// .select('title price -_id')
@@ -157,9 +189,21 @@ exports.getProducts = (req, res, next) => {
 		});
 };
 
+// ============================================
+//  Post Delete product
+// ============================================
 exports.postDeleteProduct = (req, res, next) => {
 	const prodId = req.body.productId;
-	ProductModel.deleteOne({ _id: prodId, userId: req.user._id })
+	productModel
+		.findById(prodId)
+		.then((product) => {
+			if (!product) {
+				return next(new Error('Product not found.'));
+			}
+			// deleted image the product when is deleted
+			fileMiddleware.deleteFile(product.imageUrl);
+			return ProductModel.deleteOne({ _id: prodId, userId: req.user._id });
+		})
 		.then(() => {
 			console.log('DESTROYED PRODUCT');
 			res.redirect('/admin/products');

@@ -4,10 +4,9 @@ const { UserModel } = require('../models/index.model');
 let validationConditions = [
 	check('title')
 		.isString()
-		.isLength({ min: 5, max: 50 })
+		.isLength({ min: 3, max: 50 })
 		.trim()
-		.withMessage('Title must be at least 5 chars and max 50 chars'),
-	check('imageUrl').isURL().trim().withMessage('Please enter a valid URL link'),
+		.withMessage('Title must be at least 3 chars and max 50 chars'),
 	check('price')
 		.isFloat({ min: 0.0, max: 1000000.0 })
 		.trim()
