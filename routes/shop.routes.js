@@ -17,8 +17,14 @@ router.post(
 	ShopController.postCartDeleteProduct
 );
 router.post('/cart', isAuthMiddleware, ShopController.postCart);
-router.post('/create-order', isAuthMiddleware, ShopController.postOrder);
 router.get('/orders', isAuthMiddleware, ShopController.getOrders);
 router.get('/orders/:orderId', isAuthMiddleware, ShopController.getInvoice);
+router.get('/checkout', isAuthMiddleware, ShopController.getCheckout);
+router.get(
+	'/checkout/success',
+	isAuthMiddleware,
+	ShopController.getCheckoutSuccess
+);
+router.get('/checkout/cancel', isAuthMiddleware, ShopController.getCheckout);
 
 module.exports = router;

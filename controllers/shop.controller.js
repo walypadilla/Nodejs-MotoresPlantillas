@@ -1,6 +1,9 @@
+const { STRIPE_KEY } = require('../config/config');
+
 const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit');
+const stripe = require('stripe')(STRIPE_KEY);
 
 const { ProductModel, OrderModel } = require('../models/index.model');
 const ITEMS_PER_PAGE = 6;
@@ -96,19 +99,22 @@ exports.getIndex = (req, res, next) => {
 		});
 };
 
+// ============================================
+//  Get Cart
+// ============================================
 exports.getCart = (req, res, next) => {
 	req.user
 		.populate('cart.items.productId')
 		.execPopulate()
 		.then((user) => {
 			const products = user.cart.items;
-			console.log(products);
 			const pay = user.cart.pay;
 			res.render('shop/cart', {
 				path: '/cart',
 				pageTitle: 'Your Cart',
 				products: products,
-				totalPay: pay,
+				totalXProduct: products.price * user.cart.quantity,
+				totalSum: pay,
 			});
 		})
 		.catch((err) => {
@@ -118,6 +124,9 @@ exports.getCart = (req, res, next) => {
 		});
 };
 
+// ============================================
+//  Get Post Cart
+// ============================================
 exports.postCart = (req, res, next) => {
 	const prodId = req.body.productId;
 	ProductModel.findById(prodId)
@@ -134,6 +143,9 @@ exports.postCart = (req, res, next) => {
 		});
 };
 
+// ============================================
+//  Deleting product the cart
+// ============================================
 exports.postCartDeleteProduct = (req, res, next) => {
 	const prodId = req.body.productId;
 	req.user
@@ -148,7 +160,51 @@ exports.postCartDeleteProduct = (req, res, next) => {
 		});
 };
 
-exports.postOrder = (req, res, next) => {
+// ============================================
+//  Get Checkout
+// ============================================
+exports.getCheckout = (req, res, next) => {
+	let products;
+	let pay = 0;
+	req.user
+		.populate('cart.items.productId')
+		.execPopulate()
+		.then((user) => {
+			products = user.cart.items;
+			pay = user.cart.pay;
+			return stripe.checkout.sessions.create({
+				payment_method_types: ['card'],
+				line_items: products.map((p) => {
+					return {
+						name: p.productId.title,
+						description: p.productId.description,
+						amount: p.productId.price * 100,
+						currency: 'usd',
+						quantity: p.quantity,
+					};
+				}),
+				success_url:
+					req.protocol + '://' + req.get('host') + '/checkout/success', // => http://localhost:3000
+				cancel_url: req.protocol + '://' + req.get('host') + '/checkout/cancel',
+			});
+		})
+		.then((session) => {
+			res.render('shop/checkout', {
+				path: '/checkout',
+				pageTitle: 'Your Checkout',
+				products: products,
+				totalSum: pay,
+				sessionId: session.id,
+			});
+		})
+		.catch((err) => {
+			const error = new Error(err);
+			error.httpStatusCode = 500;
+			return next(error);
+		});
+};
+
+exports.getCheckoutSuccess = (req, res, next) => {
 	req.user
 		.populate('cart.items.productId')
 		.execPopulate()
@@ -183,6 +239,9 @@ exports.postOrder = (req, res, next) => {
 		});
 };
 
+// ============================================
+//  Get Orders per user
+// ============================================
 exports.getOrders = (req, res, next) => {
 	OrderModel.find({ 'user.userId': req.user._id })
 		.then((order) => {
@@ -204,6 +263,9 @@ exports.getOrders = (req, res, next) => {
 		});
 };
 
+// ============================================
+//  Get Invoice per order
+// ============================================
 exports.getInvoice = (req, res, next) => {
 	const orderId = req.params.orderId;
 	OrderModel.findById(orderId).then((order) => {

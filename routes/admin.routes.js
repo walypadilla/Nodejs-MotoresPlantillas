@@ -22,10 +22,10 @@ router.get(
 	AdminController.getEditProduct
 );
 router.post('/edit-product', isAuthMiddleware, AdminController.postEditProduct);
-router.post(
-	'/delete-product',
+router.delete(
+	'/product/:productId',
 	isAuthMiddleware,
-	AdminController.postDeleteProduct
+	AdminController.deleteProduct
 );
 
 module.exports = router;

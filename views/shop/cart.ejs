@@ -26,17 +26,18 @@
                 <div class="cart_pay">
                     <div class="cart__item_pay">
                         <h1>Total Pay:  </h1>
-                        <h1>  $ <%= totalPay %></h1>
+                        <h1>  $ <%= totalSum %></h1>
                     </div>
                 </div >
                 
                 <hr>
-                <div class="centered">
+                <!-- <div class="centered">
                     <form action="/create-order" method="POST">
                         <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
                         <button type="submit" class="btn">Order Now!</button>
                     </form>
-                </div>
+                </div> -->
+                <a href="/checkout">Order Now</a>
             </div>  
             <% } else { %>
                 <h1>No Products in Cart!</h1>
