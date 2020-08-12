@@ -1,4 +1,6 @@
 const path = require('path');
+const fs = require('fs');
+const https = require('https');
 
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -7,12 +9,16 @@ const session = require('express-session');
 const MongoDBStore = require('connect-mongodb-session')(session);
 const csrf = require('csurf');
 const flash = require('connect-flash');
+const helmet = require('helmet');
+const compression = require('compression');
+const morgan = require('morgan');
 
 const {
 	sessionMidleware,
 	csrfTokenMiddleware,
 } = require('./middlewares/index.middleware');
-const { MONGO_URI, SECRET_SESSION } = require('./config/config');
+const { MONGO_URI, SECRET_SESSION, PORT } = require('./config/config');
+const { accessLogStream } = require('./middlewares/accessLogStream');
 
 const app = express();
 const store = new MongoDBStore({
@@ -23,6 +29,10 @@ const csrfProteccion = csrf();
 
 app.set('view engine', 'ejs');
 app.set('views', 'views');
+
+app.use(helmet());
+app.use(compression());
+app.use(morgan('combined', { stream: accessLogStream }));
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
@@ -44,6 +54,9 @@ app.use(
 );
 // csrf Token for security
 app.use(csrfProteccion);
+// create https key y certificate
+const privateKey = fs.readFileSync('server.key');
+const certificate = fs.readFileSync('server.cert');
 // using flash
 app.use(flash());
 // csrfToken Middleware
@@ -57,7 +70,10 @@ app.use(require('./routes/index.routes'));
 mongoose
 	.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
 	.then((result) => {
-		app.listen(3000);
+		// https
+		// 	.createServer({ key: privateKey, cert: certificate }, app)
+		// 	.listen(PORT || 3000);
+		app.listen(PORT || 3000);
 		console.log('Connection');
 	})
 	.catch((err) => {

@@ -12,4 +12,5 @@ module.exports = {
 	SECRET_SESSION: process.env.SECRET_SESSION,
 	SEND_GRID_KEY: process.env.SEND_GRID_KEY,
 	STRIPE_KEY: process.env.STRIPE_KEY,
+	PORT: process.env.PORT,
 };
