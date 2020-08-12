@@ -55,8 +55,8 @@ app.use(
 // csrf Token for security
 app.use(csrfProteccion);
 // create https key y certificate
-const privateKey = fs.readFileSync('server.key');
-const certificate = fs.readFileSync('server.cert');
+// const privateKey = fs.readFileSync('server.key');
+// const certificate = fs.readFileSync('server.cert');
 // using flash
 app.use(flash());
 // csrfToken Middleware
